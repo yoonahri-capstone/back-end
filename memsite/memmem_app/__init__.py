@@ -1,0 +1,1 @@
+default_app_config = 'memmem_app.apps.ProfilesConfig'

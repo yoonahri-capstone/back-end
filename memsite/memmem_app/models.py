@@ -1,6 +1,4 @@
 from django.db import models
-#from django.contrib.auth.models import BaseUserManager
-#from django.contrib.auth.models import AbstractBaseUser
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -49,49 +47,74 @@ class MyUser(AbstractBaseUser):
     #USERNAME_FIELD = 'name' #unique=True
 '''
 
-'''
-class User(models.Model):
-    name = models.CharField(max_length=20, unique=True, blank=False)
-    email = models.EmailField(unique=True, blank=False)
-
-    def __str__(self):
-        return self.name
-'''
-
 
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    image = models.ImageField(blank=True, null=True, upload_to="memmem_app/media")
+    image = models.ImageField(blank=True, null=True, upload_to='memmem_app/media')
 
+    '''
     @receiver(post_save, sender=User)
-    def create_user_profile(sender, instance, created, **kwargs):
+    def create_user_profile(self, sender, instance, created, **kwargs):
         if created:
-            Profile.objects.create(user=instance)
-
-    @receiver(post_save, sender=User)
-    def save_user_profile(sender, instance, **kwargs):
-        instance.profile.save()
-
-
-
-#class Folder(models.Model):
-#    user = models.ForeignKey(User, on_delete=models.CASCADE, default="default")
-#    folder_name = models.CharField(max_length=50, blank=False)
+            self.objects.create(user=instance)
+            instance.profile.save()
+    '''
+#    @receiver(post_save, sender=User)
+#    def save_user_profile(sender, instance, **kwargs):
+#        instance.profile.save()
 
 
-#class Scrap(models.Model):
-#    folder = models.ForeignKey(Folder, on_delete=models.CASCADE, max_length=50, default="default")
-#    title = models.CharField(max_length=50)
-#    url = models.URLField()
-#    date = models.DateField(auto_created=True)
-    # resource
-    # type
+class Folder(models.Model):
+    folder_id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(User,
+                             on_delete=models.CASCADE,
+                             related_name='folders')
+    folder_name = models.CharField(max_length=50, blank=False)
+
+    class Meta:
+        unique_together = ['user', 'folder_name']
+
+    def __str__(self):
+        return self.folder_name
 
 
-#class List(models.Model):
-#    folder_name = models.ForeignKey(Folder, on_delete=models.CASCADE)
-#    title = models.ForeignKey(Scrap, on_delete=models.CASCADE)
-#    thumbnail = models.ImageField()
+class Scrap(models.Model):
+    scrap_id = models.AutoField(primary_key=True, )
+    folder = models.ForeignKey(Folder,
+                               on_delete=models.CASCADE,
+                               related_name='scraps')
+    # default
+    title = models.CharField(max_length=100)
+    url = models.URLField(null=False)
+    date = models.DateTimeField(auto_now_add=True,
+                            auto_now=False)
+    thumbnail = models.URLField()
+
+    class Meta:
+        unique_together = ['folder', 'url']
+        ordering = ['date']
+
+    def __str__(self):
+        return self.url
 
 
-#class LogIn(models.Model)
+class Memo(models.Model):
+    memo_id = models.AutoField(primary_key=True)
+    scrap = models.ForeignKey(Scrap,
+                              on_delete=models.CASCADE,
+                              related_name='memos')
+    memo = models.TextField()
+
+    def __str__(self):
+        return self.memo
+
+
+class Tag(models.Model):
+    tag_id = models.AutoField(primary_key=True)
+    scrap = models.ForeignKey(Scrap,
+                              on_delete=models.CASCADE,
+                              related_name="tags")
+    tag_text = models.CharField(max_length=30)
+
+    def __str__(self):
+        return self.tag_text

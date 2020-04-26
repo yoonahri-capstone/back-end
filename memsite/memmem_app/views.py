@@ -1,11 +1,14 @@
 from rest_framework import viewsets, permissions, generics, status
 from django.contrib.auth.models import User
-#from .models import Folder, Scrap, List
+from .models import Folder, Scrap, Memo, Tag
 
 from .serializers import UserSerializer
 from .serializers import CreateUserSerializer
 from .serializers import LoginUserSerializer
-#FolderSerializer, ScrapSerializer, ListSerializer
+from .serializers import UserFolderSerializer
+from .serializers import ScrapSerializer
+from .serializers import ScrapListSerializer
+
 #from rest_framework.decorators import action
 
 from django.shortcuts import get_object_or_404
@@ -26,7 +29,7 @@ class RegistrationAPI(generics.GenericAPIView):
                 'user': UserSerializer(
                     user, context=self.get_serializer_context()
                 ).data,
-                'token': AuthToken.objects.create(user),
+                'token': AuthToken.objects.create(user)[1]
             }
         )
 
@@ -43,7 +46,7 @@ class LoginAPI(generics.GenericAPIView):
                 'user': UserSerializer(
                     user, context=self.get_serializer_context()
                 ).data,
-                'token': AuthToken.objects.create(user),
+                'token': AuthToken.objects.create(user)[1],
             }
         )
 
@@ -61,35 +64,28 @@ class MyUserViewSet(viewsets.ModelViewSet):
     serializer_class = UserSerializer
 
 
-#    def list(self, request):
-#        queryset = MyUser.objects.all()
-#        serializer = MyUserSerializer(queryset, many=True)
-#        return Response(serializer.data)
+# User's Folder List
+class FolderViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserFolderSerializer
 
-#    def retrieve(self, request, pk=None):
-#        queryset = MyUser.objects.all()
-#        user = get_object_or_404(queryset, pk=pk)
-#        serializer = MyUserSerializer(user)
-#        return Response(serializer.data)
-
-    #Ex()
-    #@action(methods=[''], detail=True, ?)
-    #def set_password(self, request, pk=None):
-
-#class SignUpViewSet(viewsets.ModelViewSet):
+    def get_queryset(self, *args, **kwargs):
+        return User.objects.filter(id=self.kwargs['pk'])
 
 
+# Scrap List (in Folder)
+class FolderScrapsViewSet(viewsets.ModelViewSet):
+    queryset = Folder.objects.all()
+    serializer_class = ScrapListSerializer
 
-#class FolderViewSet(viewsets.ModelViewSet):
-#    queryset = Folder.objects.all()
-#    serializer_class = FolderSerializer
-
-
-#class ScrapViewSet(viewsets.ModelViewSet):
-#    queryset = Scrap.objects.all()
-#    serializer_class = ScrapSerializer
+    def get_queryset(self, *args, **kwargs):
+        return Folder.objects.filter(folder_id=self.kwargs['folder_pk'])
 
 
-#class ListViewSet(viewsets.ModelViewSet):
-#    queryset = List.objects.all()
-#    serializer_class = ListSerializer
+# User Scrap List
+class ScrapAllViewSet(viewsets.ModelViewSet):
+    queryset = Scrap.objects.all()
+    serializer_class = ScrapSerializer
+
+    def get_queryset(self, *args, **kwargs):
+        return Scrap.objects.filter(folder__user=self.kwargs['pk'])

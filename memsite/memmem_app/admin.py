@@ -1,8 +1,11 @@
 from django.contrib import admin
-#from .models import Folder, Scrap,
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
 from .models import Profile
+from .models import Folder
+from .models import Scrap
+from .models import Memo
+from .models import Tag
 
 # Register your models here.
 
@@ -19,6 +22,7 @@ class UserAdmin(BaseUserAdmin):
 
 admin.site.unregister(User)
 admin.site.register(User, UserAdmin)
-#admin.site.register(Folder)
-#admin.site.register(Scrap)
-#admin.site.register(List)
+admin.site.register(Folder)
+admin.site.register(Scrap)
+admin.site.register(Memo)
+admin.site.register(Tag)

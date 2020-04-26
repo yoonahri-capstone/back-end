@@ -27,7 +27,7 @@ router.register(r'myuser', views.MyUserViewSet)
 #router.register(r'folder', views.FolderViewSet)
 #router.register(r'scrap', views.ScrapViewSet)
 #router.register(r'list', views.ListViewSet)
-
+#router.register(r'scraps', views.TotalListViewSet)
 
 urlpatterns = [
     path('memmem_app/', include('memmem_app.urls')),

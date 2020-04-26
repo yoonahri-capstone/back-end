@@ -1,9 +1,10 @@
 from rest_framework import serializers
-#from .models import Folder
-#from .models import Scrap
-#from .models import List
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from .models import Folder
+from .models import Scrap
+from .models import Memo
+from .models import Tag
 
 
 class CreateUserSerializer(serializers.ModelSerializer):
@@ -19,7 +20,9 @@ class CreateUserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = User.objects.create_user(
-            validated_data['username'],  validated_data['email'], validated_data['password']
+            validated_data['username'],
+            validated_data['email'],
+            validated_data['password']
         )
         return user
 
@@ -32,7 +35,6 @@ class UserSerializer(serializers.ModelSerializer):
 
 class LoginUserSerializer(serializers.Serializer):
     username = serializers.CharField()
-#    email = serializers.EmailField()
     password = serializers.CharField()
 
     def validate(self, data):
@@ -42,20 +44,71 @@ class LoginUserSerializer(serializers.Serializer):
         raise serializers.ValidationError("Unable to log in")
 
 
-
-#class FolderSerializer(serializers.ModelSerializer):
-#    class Meta:
-#        model = Folder
-#        fields = ('id', 'user_name', 'folder_name',)
-
-
-#class ScrapSerializer(serializers.ModelSerializer):
-#    class Meta:
-#        model = Scrap
-#        fields = ('id', 'folder_name', 'title', 'url', 'date',)
+# Folder
+class FolderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Folder
+        fields = ('folder_id', 'folder_name')
 
 
-#class ListSerializer(serializers.ModelSerializer):
-#    class Meta:
-#        model = List
-#        fields = ('id', 'folder_name', 'title', 'thumbnail',)
+# User's Folder List
+class UserFolderSerializer(serializers.ModelSerializer):
+    folders = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'folders')
+
+    def get_folders(self, instance):
+        folder = instance.folders.all()
+        return FolderSerializer(folder, many=True).data
+
+
+# Scrap List (in Folder)
+class ScrapListSerializer(serializers.ModelSerializer):
+    scraps = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Folder
+        fields = ('folder_id', 'scraps')
+
+    def get_scraps(self, instance):
+        scrap = instance.scraps.all()
+        return ScrapSerializer(scrap, many=True).data
+
+
+# scrap 1개 세부정보
+class ScrapSerializer(serializers.ModelSerializer):
+    memos = serializers.SerializerMethodField()
+    tags = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Scrap
+        fields = ('scrap_id',
+                  'title',
+                  'url',
+                  'date',
+                  'thumbnail',
+                  'memos',
+                  'tags'
+                  )
+
+    def get_memos(self, instance):
+        memo = instance.memos.all()
+        return MemoSerializer(memo, many=True).data
+
+    def get_tags(self, instance):
+        tag = instance.tags.all()
+        return TagSerializer(tag, many=True).data
+
+
+class MemoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Memo
+        fields = ('memo_id', 'memo')
+
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ('tag_id', 'tag_text')
