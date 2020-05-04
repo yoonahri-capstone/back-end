@@ -23,7 +23,7 @@ from django.conf.urls.static import static
 from memmem_app import views
 
 router = routers.DefaultRouter()
-router.register(r'myuser', views.MyUserViewSet)
+router.register(r'user', views.MyUserViewSet)
 #router.register(r'folder', views.FolderViewSet)
 #router.register(r'scrap', views.ScrapViewSet)
 #router.register(r'list', views.ListViewSet)

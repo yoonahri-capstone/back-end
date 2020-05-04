@@ -1,7 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import User
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 
 '''
 class MyUserManager(BaseUserManager):
@@ -51,51 +49,57 @@ class MyUser(AbstractBaseUser):
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     image = models.ImageField(blank=True, null=True, upload_to='memmem_app/media')
-
-    '''
-    @receiver(post_save, sender=User)
-    def create_user_profile(self, sender, instance, created, **kwargs):
-        if created:
-            self.objects.create(user=instance)
-            instance.profile.save()
-    '''
-#    @receiver(post_save, sender=User)
-#    def save_user_profile(sender, instance, **kwargs):
-#        instance.profile.save()
+    # image 형식 미정
 
 
 class Folder(models.Model):
     folder_id = models.AutoField(primary_key=True)
+    folder_key = models.PositiveIntegerField(default=0)
     user = models.ForeignKey(User,
                              on_delete=models.CASCADE,
                              related_name='folders')
-    folder_name = models.CharField(max_length=50, blank=False)
-
-    class Meta:
-        unique_together = ['user', 'folder_name']
+    folder_name = models.CharField(max_length=50,
+                                   blank=False,
+                                   default='default folder')
 
     def __str__(self):
         return self.folder_name
 
+    def save(self, *args, **kwargs):
+        key = 0
+        present_keys = Folder.objects.filter(user=self.user).order_by('-folder_key').values_list('folder_key', flat=True)
+        if present_keys:
+            key = present_keys[0] + 1
+        self.folder_key = key
+        super(Folder, self).save(*args, **kwargs)
+
 
 class Scrap(models.Model):
-    scrap_id = models.AutoField(primary_key=True, )
+    scrap_id = models.AutoField(primary_key=True)
     folder = models.ForeignKey(Folder,
                                on_delete=models.CASCADE,
                                related_name='scraps')
-    # default
-    title = models.CharField(max_length=100)
+    title = models.TextField()# char->text 바꿈
     url = models.URLField(null=False)
     date = models.DateTimeField(auto_now_add=True,
-                            auto_now=False)
-    thumbnail = models.URLField()
-
-    class Meta:
-        unique_together = ['folder', 'url']
-        ordering = ['date']
+                                auto_now=False)
+    thumbnail = models.TextField(null=True)# char->text 바꿈
+    domain = models.CharField(max_length=50)
 
     def __str__(self):
         return self.url
+
+    def create(self, validated_data):
+        return Scrap.objects.create(**validated_data)
+
+    def get_id(self):
+        return self.scrap_id
+
+
+class MemoManager(models.Manager):
+    def create_memo(self, scrap_id, memo):
+        new_memo = self.create(scrap_id, memo=memo)
+        return new_memo
 
 
 class Memo(models.Model):
@@ -103,7 +107,7 @@ class Memo(models.Model):
     scrap = models.ForeignKey(Scrap,
                               on_delete=models.CASCADE,
                               related_name='memos')
-    memo = models.TextField()
+    memo = models.TextField(null=True)
 
     def __str__(self):
         return self.memo
@@ -114,7 +118,10 @@ class Tag(models.Model):
     scrap = models.ForeignKey(Scrap,
                               on_delete=models.CASCADE,
                               related_name="tags")
-    tag_text = models.CharField(max_length=30)
+    tag_text = models.CharField(max_length=30, null=True)
 
     def __str__(self):
         return self.tag_text
+
+    def create(self, validated_data):
+        return Tag.objects.create(**validated_data)

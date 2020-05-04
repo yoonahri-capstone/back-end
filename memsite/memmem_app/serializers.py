@@ -48,7 +48,7 @@ class LoginUserSerializer(serializers.Serializer):
 class FolderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
-        fields = ('folder_id', 'folder_name')
+        fields = ('folder_key', 'folder_name')
 
 
 # User's Folder List
@@ -70,7 +70,7 @@ class ScrapListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Folder
-        fields = ('folder_id', 'scraps')
+        fields = ('folder_key', 'folder_name', 'scraps')
 
     def get_scraps(self, instance):
         scrap = instance.scraps.all()
@@ -89,6 +89,7 @@ class ScrapSerializer(serializers.ModelSerializer):
                   'url',
                   'date',
                   'thumbnail',
+                  'domain',
                   'memos',
                   'tags'
                   )
@@ -112,3 +113,40 @@ class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
         fields = ('tag_id', 'tag_text')
+
+
+class CreateScrapSerializer(serializers.ModelSerializer):
+    memos = serializers.SerializerMethodField()
+    tags = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Scrap
+        fields = ('folder',
+                  'url',
+                  'title',
+                  'thumbnail',
+                  'domain',
+                  'memos',
+                  'tags')
+
+    def create(self, validated_data):
+        return Scrap.objects.create(**validated_data)
+
+    def get_memos(self, instance):
+        memo = instance.memos.all()
+        return MemoSerializer(memo, many=True).data
+
+    def get_tags(self, instance):
+        tag = instance.tags.all()
+        return TagSerializer(tag, many=True).data
+
+
+class CreateTagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ('scrap',
+                  'tag_text'
+                  )
+
+    def create(self, validated_data):
+        return Tag.objects.create(**validated_data)
