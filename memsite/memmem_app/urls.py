@@ -9,6 +9,7 @@ from .views import ScrapAllViewSet
 #from .views import ScrapViewSet
 from .views import CreateScrapAPI
 from .views import ScrapDetail
+from .views import UpdateScrap
 from .views import TagDetail
 
 app_name = 'memmem_app'
@@ -41,6 +42,7 @@ urlpatterns = [
 
     path('addscrap/', CreateScrapAPI.as_view()),
     path('scrap/<int:pk>/', ScrapDetail.as_view()),
+    path('updatescrap/<int:pk>/', UpdateScrap.as_view()), #임시 update
     path('tag/<int:pk>/', TagDetail.as_view()),
 
     path('', include('rest_framework.urls', namespace='rest_framework_category')),

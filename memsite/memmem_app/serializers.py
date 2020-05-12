@@ -189,6 +189,16 @@ class ScrapSerializer(serializers.ModelSerializer):
     '''
 
 
+# 임시 update
+class UpdateScrapSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Scrap
+        fields = ('scrap_id',
+                  'folder',
+                  'title',
+                  )
+
+
 class UrlRequestSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     folder_key = serializers.IntegerField()

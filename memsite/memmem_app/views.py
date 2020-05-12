@@ -14,6 +14,7 @@ from .serializers import CreateScrapSerializer
 from .serializers import CreateTagSerializer
 from .serializers import MemoSerializer
 from .serializers import TagSerializer
+from .serializers import UpdateScrapSerializer
 
 # from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
@@ -26,6 +27,8 @@ from .crawling import crawl_request
 from django.http import JsonResponse
 #from django.views.generic.base import RedirectView
 
+import requests
+import re
 
 # register user
 class RegistrationAPI(generics.GenericAPIView):
@@ -143,6 +146,9 @@ class ScrapViewSet(viewsets.ModelViewSet):
 '''
 
 
+regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
+
+
 # ADD new url
 class CreateScrapAPI(generics.GenericAPIView):
     #serializer_class = CreateScrapSerializer
@@ -152,62 +158,76 @@ class CreateScrapAPI(generics.GenericAPIView):
         # request = [id(user), folder_key, url]
         user = request.POST.get('id', '')
         folder_key = request.POST.get('folder_key', '')
-        url = request.POST.get('url', '')
+        check = request.POST.get('url', '')
+        url = re.findall(regex, check)[0][0]
+
+        response = requests.get(url)
+        print(response)# (status_code)
 
         if Scrap.objects.filter(folder__user=user, url=url).exists():
             return JsonResponse({'message': 'URL EXISTS'}, status=403)
 
-        # crawling = [URL, title, thumbnail, domain] + [tag list..]
-        crawling = crawl_request(url)
-        if crawling == [None]:
-            return JsonResponse({'message': 'CANNOT ACCESS'}, status=403)
-        else:
-            crawl_list = []
-            tags_list = []
-            num = 0
+        if response.status_code == 200:
+            # crawling = [URL, title, thumbnail, domain] + [tag list..]
+            crawling = crawl_request(url)
 
-            if len(crawling) > 4:
-                crawl_list = crawling[0:4]
-                tags_list = crawling[4:]
-                num = len(tags_list)
+            if crawling is None:
+                return JsonResponse({'message': 'CRAWLING EXCEPTION'}, status=403)
             else:
-                crawl_list = crawling
+                crawl_list = []
+                tags_list = []
+                num = 0
 
-            # search folder id
-            folder_id = Folder.objects.filter(user=user, folder_key=folder_key).values_list('folder_id', flat=True)
-            folder_id = folder_id[0]
+                if len(crawling) > 4:
+                    crawl_list = crawling[0:4]
+                    tags_list = crawling[4:]
+                    num = len(tags_list)
+                else:
+                    crawl_list = crawling
 
-            crawl_data = dict(folder=folder_id,
-                              url=crawl_list[0],
-                              title=crawl_list[1],
-                              thumbnail=crawl_list[2],
-                              domain=crawl_list[3])
+                # search folder id
+                folder_id = Folder.objects.filter(user=user, folder_key=folder_key).values_list('folder_id', flat=True)
+                folder_id = folder_id[0]
+                
+                crawl_data = dict(folder=folder_id,
+                                  url=crawl_list[0],
+                                  title=crawl_list[1],
+                                  thumbnail=crawl_list[2],
+                                  domain=crawl_list[3])
 
-            serializer = CreateScrapSerializer(data=crawl_data)
-            serializer.is_valid(raise_exception=True)
-            scrap = serializer.save()
+                serializer = CreateScrapSerializer(data=crawl_data)
+                serializer.is_valid(raise_exception=True)
+                scrap = serializer.save()
 
-            if num > 0:
-                tag_to = Scrap.get_id(scrap)
-                for i in range(0, num):
-                    tag_data = dict(scrap=tag_to,
-                                    tag_text=tags_list[i])
-                    tag_serializer = CreateTagSerializer(data=tag_data)
-                    tag_serializer.is_valid(raise_exception=True)
-                    tag_serializer.save()
+                if num > 0:
+                    tag_to = Scrap.get_id(scrap)
+                    for i in range(0, num):
+                        tag_data = dict(scrap=tag_to,
+                                        tag_text=tags_list[i])
+                        tag_serializer = CreateTagSerializer(data=tag_data)
+                        tag_serializer.is_valid(raise_exception=True)
+                        tag_serializer.save()
 
-            return Response(
-                {
-                    'scrap': ScrapSerializer(
-                        scrap, context=self.get_serializer_context()
-                    ).data
-                }
-            )
+                return Response(
+                    {
+                        'scrap': ScrapSerializer(
+                            scrap, context=self.get_serializer_context()
+                        ).data
+                    }
+                )
+        else:
+            return JsonResponse({'message': 'CANNOT ACCESS (NOT 200)'}, status=403)
 
 
 class ScrapDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Scrap.objects.all()
     serializer_class = ScrapSerializer
+
+
+#임시 update
+class UpdateScrap(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Scrap.objects.all()
+    serializer_class = UpdateScrapSerializer
 
 
 class TagDetail(generics.RetrieveUpdateDestroyAPIView):
