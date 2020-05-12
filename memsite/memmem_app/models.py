@@ -79,6 +79,9 @@ class Scrap(models.Model):
     folder = models.ForeignKey(Folder,
                                on_delete=models.CASCADE,
                                related_name='scraps')
+    #default_folder = models.ForeignKey(Folder,
+    #                                   on_delete=models.CASCADE,
+    #                                   related_name='list_all')
     title = models.TextField()# char->text 바꿈
     url = models.URLField(null=False)
     date = models.DateTimeField(auto_now_add=True,
