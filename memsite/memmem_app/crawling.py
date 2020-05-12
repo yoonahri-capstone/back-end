@@ -11,27 +11,40 @@ import time
 global driver, URL, html, soup
 
 
-def url_crawl():
+def url_crawl(soup):
     save_list = []
+    CURRENT_URL = driver.current_url
+    extracted = tldextract.extract(URL)
+    print(extracted)
+    extracted_current_url = tldextract.extract(CURRENT_URL)
+    print(extracted_current_url)
+    domain = extracted.domain
 
-    try:
-        extracted = tldextract.extract(URL)
+    if domain == 'instagram':
+        if "비공개 계정입니다" in soup.find('h2', {"class": "rkEop"}):
+            return None
+
+    if domain == 'naver' and extracted.suffix == 'me' and extracted_current_url.subdomain == 'blog':
+        driver.switch_to.frame('mainFrame')
+        html = driver.page_source
+        soup = BeautifulSoup(html, 'lxml')
+
+    try :
         title = soup.head.title.text
         title = title.replace('\n', ' ')
-        if '페이지를 찾을 수 없습니다' in title:
-            save_list = None
-        else:
-            try:
-                thumbnail = soup.find("meta", {"property": "og:image"}).get("content")
-            except:
-                thumbnail = None
-            save_list.append(URL)
-            save_list.append(title)
-            save_list.append(thumbnail)
-            save_list.append(extracted.domain)
+
+        try:
+            thumbnail = soup.find("meta", {"property": "og:image"}).get("content")
+        except:
+            thumbnail = None
+        save_list.append(URL)
+        save_list.append(title)
+        save_list.append(thumbnail)
+        save_list.append(extracted.domain)
+
     except Exception as e:
         print(e)
-
+        return None
 
     return save_list
 
@@ -108,7 +121,7 @@ def crawl_request(request):
     html = driver.page_source
     soup = BeautifulSoup(html, 'lxml')
 
-    save_list = url_crawl()
+    save_list = url_crawl(soup)
     hash_list = hashtag_crawl()
 
     if len(hash_list) > 0:
