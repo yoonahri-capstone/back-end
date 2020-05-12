@@ -14,17 +14,24 @@ global driver, URL, html, soup
 def url_crawl():
     save_list = []
 
-    extracted = tldextract.extract(URL)
-    title = soup.head.title.text
     try:
-        thumbnail = soup.find("meta", {"property": "og:image"}).get("content")
-    except:
-        thumbnail = None
-    save_list.append(URL)
-    save_list.append(title)
-    save_list.append(thumbnail)
-    save_list.append(extracted.domain)
-    print(save_list)
+        extracted = tldextract.extract(URL)
+        title = soup.head.title.text
+        title = title.replace('\n', ' ')
+        if '페이지를 찾을 수 없습니다' in title:
+            save_list = None
+        else:
+            try:
+                thumbnail = soup.find("meta", {"property": "og:image"}).get("content")
+            except:
+                thumbnail = None
+            save_list.append(URL)
+            save_list.append(title)
+            save_list.append(thumbnail)
+            save_list.append(extracted.domain)
+    except Exception as e:
+        print(e)
+
 
     return save_list
 
