@@ -32,7 +32,7 @@ urlpatterns = [
     path('users/<int:pk>/folders/', user_folders),
     path('users/<int:pk>/folders/<int:folder_key>/', folder_scraps),
     path('users/<int:pk>/listall/', user_scraps),
-    path('users/<int:pk>/scrap/<int:scrap_pk>/', scrap_detail),
+    path('scrap/<int:pk>/', scrap_detail),
 
     path('addscrap/', CreateScrapAPI.as_view()),
 

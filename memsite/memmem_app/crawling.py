@@ -74,6 +74,8 @@ def hashtag_crawl():
     extracted = tldextract.extract(URL)
     if extracted.domain == 'youtube':
         hashtags = youtube_hashtag()
+    elif extracted.domain == 'youtu':
+        hashtags = youtube_hashtag()
     elif extracted.domain == 'naver':
         hashtags = naver_hashtag()
     elif extracted.domain == 'facebook':
@@ -93,7 +95,7 @@ def crawl_request(request):
 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('headless')
-    driver = webdriver.Chrome('C:/Users/HYERIKIM/CapstoneProject2/project/memsite/memmem_app/chromedriver.exe', options=chrome_options)
+    driver = webdriver.Chrome('C:/Users/yoonhee/Desktop/back-end3/back-end/memsite/memmem_app/chromedriver.exe', options=chrome_options)
 
     # no error 가정
     URL = request

@@ -19,6 +19,9 @@ from rest_framework.decorators import api_view
 from knox.models import AuthToken
 from .crawling import crawl_request
 
+from django.http import JsonResponse
+import json
+
 
 # register user
 class RegistrationAPI(generics.GenericAPIView):
@@ -33,14 +36,16 @@ class RegistrationAPI(generics.GenericAPIView):
         Profile.objects.get_or_create(user=user)
         Folder.objects.get_or_create(user=user, folder_key=0)
 
-        return Response(
-            {
-                'user': UserSerializer(
-                    user, context=self.get_serializer_context()
-                ).data,
-                'token': AuthToken.objects.create(user)[1]
-            }
-        )
+        # return Response(
+        #     {
+        #         'user': UserSerializer(
+        #             user, context=self.get_serializer_context()
+        #         ).data,
+        #         'token': AuthToken.objects.create(user)[1]
+        #     }
+        # )
+
+        return JsonResponse({'status':200})
 
 
 # login
@@ -51,14 +56,21 @@ class LoginAPI(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data
-        return Response(
+        # return Response(
+        #     {
+        #         'user': UserSerializer(
+        #             user, context=self.get_serializer_context()
+        #         ).data,
+        #         # 'token': AuthToken.objects.create(user)[1]
+        #     }
+        # )
+        return JsonResponse(
             {
-                'user': UserSerializer(
-                    user, context=self.get_serializer_context()
-                ).data,
-                # 'token': AuthToken.objects.create(user)[1]
+                'status': 200,
+                'id' : UserSerializer(user, context=self.get_serializer_context()).data['id']
             }
         )
+
 
 '''
 class UserAPI(generics.RetrieveAPIView):
@@ -106,8 +118,8 @@ class ScrapViewSet(viewsets.ModelViewSet):
     serializer_class = ScrapSerializer
 
     def get_queryset(self, *args, **kwargs):
-        return Scrap.objects.filter(folder__user=self.kwargs['pk'], scrap_id=self.kwargs['scrap_pk'])
-
+        #return Scrap.objects.filter(folder__user=self.kwargs['pk'], scrap_id=self.kwargs['scrap_pk'])
+        return Scrap.objects.filter(scrap_id=self.kwargs['pk'])
 
 # ADD new url
 class CreateScrapAPI(generics.GenericAPIView):
@@ -115,12 +127,20 @@ class CreateScrapAPI(generics.GenericAPIView):
 
     def post(self, request, *args, **kwargs):
         # request = [id(user), folder_key, url]
-        user = request.POST.get('id', '')
-        folder_key = request.POST.get('folder_key', '')
-        url = request.POST.get('url', '')
+        # print(request.body)
+        # user = request.POST.get("id", '')
+        # folder_key = request.POST.get("folder_key", '')
+        # url = request.POST.get("url", '')
+        # print("url", url)
 
+        print(request.body)
+        request = json.loads(request.body)
+        user = request['id']
+        folder_key = request['folder_key']
+        url = request['url']
         # crawling = [URL, title, thumbnail, domain] + [tag list..]
         crawling = crawl_request(url)
+
         crawl_list = []
         tags_list = []
         num = 0
