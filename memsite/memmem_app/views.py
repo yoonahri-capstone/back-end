@@ -103,7 +103,8 @@ class FolderScrapsViewSet(viewsets.ModelViewSet):
     serializer_class = ScrapListSerializer
 
     def get_queryset(self, *args, **kwargs):
-        return Folder.objects.filter(user_id=self.kwargs['pk'], folder_key=self.kwargs['folder_key'])
+        #return Folder.objects.filter(user_id=self.kwargs['pk'], folder_key=self.kwargs['folder_key'])
+        return Folder.objects.filter(user_id=self.kwargs['pk'], folder_id=self.kwargs['folder_id'])
 
 '''
 # Get Scrap List (in Default Folder)
@@ -144,16 +145,17 @@ class CreateScrapAPI(generics.GenericAPIView):
     serializer_class = UrlRequestSerializer
 
     def post(self, request, *args, **kwargs):
-        print(request.body)
+        # print(request.body)
         request = json.loads(request.body)
         user = request['id']
-        folder_key = request['folder_key']
+        #folder_key = request['folder_key']
+        folder_id = request['folder_id']
         check = request['url']
 
         url = re.findall(regex, check)[0][0]
 
         response = requests.get(url)
-        print(response)# (status_code)
+        # print(response)# (status_code)
 
         if Scrap.objects.filter(folder__user=user, url=url).exists():
             return JsonResponse({'message': 'URL EXISTS'}, status=403)
@@ -177,8 +179,8 @@ class CreateScrapAPI(generics.GenericAPIView):
                     crawl_list = crawling
 
                 # search folder id
-                folder_id = Folder.objects.filter(user=user, folder_key=folder_key).values_list('folder_id', flat=True)
-                folder_id = folder_id[0]
+                #folder_id = Folder.objects.filter(user=user, folder_key=folder_key).values_list('folder_id', flat=True)
+                #folder_id = folder_id[0]
                 
                 crawl_data = dict(folder=folder_id,
                                   url=crawl_list[0],

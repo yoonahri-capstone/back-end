@@ -48,7 +48,8 @@ class LoginUserSerializer(serializers.Serializer):
 class FolderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Folder
-        fields = ('folder_key', 'folder_name')
+        #fields = ('folder_key', 'folder_name')
+        fields = ('folder_id', 'folder_key', 'folder_name')
 
 
 # User's Folder List
@@ -70,7 +71,8 @@ class ScrapListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Folder
-        fields = ('folder_key', 'folder_name', 'scraps')
+        #fields = ('folder_key', 'folder_name', 'scraps')
+        fields = ('folder_id', 'folder_name', 'scraps')
 
     def get_scraps(self, instance):
         scrap = instance.scraps.all()
@@ -201,7 +203,8 @@ class UpdateScrapSerializer(serializers.ModelSerializer):
 
 class UrlRequestSerializer(serializers.Serializer):
     id = serializers.IntegerField()
-    folder_key = serializers.IntegerField()
+    #folder_key = serializers.IntegerField()
+    folder_id = serializers.IntegerField()
     url = serializers.CharField()
 
 

@@ -33,7 +33,8 @@ urlpatterns = [
     path('users/', user_list),
     path('users/<int:pk>/', user_detail, name="note-detail"),
     path('users/<int:pk>/folders/', user_folders),
-    path('users/<int:pk>/folders/<int:folder_key>/', folder_scraps, name="folder_scraps"),
+    #path('users/<int:pk>/folders/<int:folder_key>/', folder_scraps, name="folder_scraps"),
+    path('users/<int:pk>/folders/<int:folder_id>/', folder_scraps, name="folder_scraps"),
     path('users/<int:pk>/listall/', user_scraps, name="user_scraps"),
 
     path('addscrap/', CreateScrapAPI.as_view()),
