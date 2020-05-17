@@ -2,14 +2,19 @@ from django.urls import path, include
 from .views import MyUserViewSet
 from .views import RegistrationAPI
 from .views import LoginAPI
+
 from .views import FolderViewSet
 from .views import FolderScrapsViewSet
 #from .views import DefaultFolderScrapsViewSet
+from .views import CreateFolderAPI
+from .views import FolderDetail
+
 from .views import ScrapAllViewSet
 #from .views import ScrapViewSet
 from .views import CreateScrapAPI
 from .views import ScrapDetail
 from .views import UpdateScrap
+
 from .views import TagDetail
 
 app_name = 'memmem_app'
@@ -34,9 +39,11 @@ urlpatterns = [
     path('users/<int:pk>/', user_detail, name="note-detail"),
     path('users/<int:pk>/folders/', user_folders),
     #path('users/<int:pk>/folders/<int:folder_key>/', folder_scraps, name="folder_scraps"),
-    path('users/<int:pk>/folders/<int:folder_id>/', folder_scraps, name="folder_scraps"),
+    path('users/<int:user>/folders/<int:pk>/', FolderDetail.as_view()),
+    path('users/<int:pk>/folders/<int:folder_id>/listall/', folder_scraps, name="folder_scraps"),
     path('users/<int:pk>/listall/', user_scraps, name="user_scraps"),
 
+    path('addfolder/', CreateFolderAPI.as_view()),
     path('addscrap/', CreateScrapAPI.as_view()),
     path('scrap/<int:pk>/', ScrapDetail.as_view()),
     path('updatescrap/<int:pk>/', UpdateScrap.as_view()), #임시 update
@@ -44,12 +51,3 @@ urlpatterns = [
 
     path('', include('rest_framework.urls', namespace='rest_framework_category')),
  ]
-
-'''
-tag 수정/삭제시 url : tag/{tag_id}
-body : 
-{
-    "tag_id": ~~~,
-    "tag_text": "#~~~~"
-}
-'''

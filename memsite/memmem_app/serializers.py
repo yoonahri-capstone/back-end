@@ -52,6 +52,24 @@ class FolderSerializer(serializers.ModelSerializer):
         fields = ('folder_id', 'folder_key', 'folder_name')
 
 
+# Create Folder
+class CreateFolderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Folder
+        fields = ('user', 'folder_name')
+
+    def create(self, validated_data):
+        folder = Folder.objects.create(**validated_data)
+        return folder
+
+
+# Update Folder
+class UpdateFolderSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Folder
+        fields = ('folder_id', 'folder_name')
+
+
 # User's Folder List
 class UserFolderSerializer(serializers.ModelSerializer):
     folders = serializers.SerializerMethodField()

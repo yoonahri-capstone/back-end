@@ -14,7 +14,10 @@ from .serializers import CreateScrapSerializer
 from .serializers import CreateTagSerializer
 from .serializers import MemoSerializer
 from .serializers import TagSerializer
+from .serializers import CreateFolderSerializer
 from .serializers import UpdateScrapSerializer
+from .serializers import FolderSerializer
+from .serializers import UpdateFolderSerializer
 
 # from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
@@ -25,10 +28,11 @@ from knox.models import AuthToken
 from .crawling import crawl_request
 
 from django.http import JsonResponse
-import json
 
 import requests
 import re
+import json
+
 
 # register user
 class RegistrationAPI(generics.GenericAPIView):
@@ -44,6 +48,7 @@ class RegistrationAPI(generics.GenericAPIView):
         Folder.objects.get_or_create(user=user, folder_key=0)
 
         return JsonResponse({'status': 200})
+
 
 # login
 class LoginAPI(generics.GenericAPIView):
@@ -210,6 +215,47 @@ class CreateScrapAPI(generics.GenericAPIView):
                 )
         else:
             return JsonResponse({'message': 'CANNOT ACCESS (NOT 200)'}, status=403)
+
+
+class CreateFolderAPI(generics.GenericAPIView):
+    serializer_class = CreateFolderSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = CreateFolderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        folder = serializer.save()
+
+        return JsonResponse(
+            {
+                'folder_id': FolderSerializer(folder, context=self.get_serializer_context()
+                                       ).data['folder_id'],
+                'folder_name': FolderSerializer(folder, context=self.get_serializer_context()
+                                       ).data['folder_name']
+            },
+            status=200
+        )
+
+
+class FolderDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Folder.objects.all()
+    serializer_class = UpdateFolderSerializer
+
+    def update(self, request, *args, **kwargs):
+        obj = Folder.objects.get(folder_id=self.kwargs['pk'])
+
+        serializer = UpdateFolderSerializer(obj, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        folder = serializer.save()
+
+        return JsonResponse(
+            {
+                'folder_id': FolderSerializer(folder, context=self.get_serializer_context()
+                                              ).data['folder_id'],
+                'folder_name': FolderSerializer(folder, context=self.get_serializer_context()
+                                                ).data['folder_name']
+            },
+            status=200
+        )
 
 
 class ScrapDetail(generics.RetrieveUpdateDestroyAPIView):

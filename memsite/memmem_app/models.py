@@ -65,12 +65,16 @@ class Folder(models.Model):
     def __str__(self):
         return self.folder_name
 
+    def create(self, validated_data):
+        return Folder.objects.create(**validated_data)
+
     def save(self, *args, **kwargs):
         key = 0
-        present_keys = Folder.objects.filter(user=self.user).order_by('-folder_key').values_list('folder_key', flat=True)
-        if present_keys:
-            key = present_keys[0] + 1
-        self.folder_key = key
+        if not Folder.objects.filter(folder_id=self.folder_id).exists():
+            present_keys = Folder.objects.filter(user=self.user).order_by('-folder_key').values_list('folder_key', flat=True)
+            if present_keys:
+                key = present_keys[0] + 1
+            self.folder_key = key
         super(Folder, self).save(*args, **kwargs)
 
 
