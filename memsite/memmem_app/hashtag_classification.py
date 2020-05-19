@@ -5,7 +5,7 @@ from math import sin, cos, sqrt, atan2, radians
 
 
 def requestJson(text):
-    accessKey = "cee6cc42-ce90-46d8-96be-98495c554d25"
+    accessKey = ""
     analysisCode = "ner"
 
     requestJson = {
@@ -30,7 +30,7 @@ def get_tag(requestJson):
     return tag
 
 
-API_KEY = "AIzaSyCqzqvv8VfaPZMg0JimBKSvygDO5KWec4E"
+API_KEY = ""
 
 def get_geocode(address):
     try:
