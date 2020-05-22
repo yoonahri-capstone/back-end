@@ -131,20 +131,8 @@ class CreateMemoSerializer(serializers.ModelSerializer):
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tag
-        fields = ('tag_id', 'tag_text')
-
-'''
-class UpdateTagSerializer(serializers.ModelSerializer):
-    #delete = serializers.SerializerMethodField()
-    delete = serializers.BooleanField(required=False)
-
-    class Meta:
-        model = Tag
-        fields = ('scrap',
-                  'tag_text',
-                  'delete'
-                  )
-'''
+        fields = ('tag_text',)
+        #fields = ('tag_id', 'tag_text')
 
 
 class CreateTagSerializer(serializers.ModelSerializer):
@@ -211,12 +199,49 @@ class ScrapSerializer(serializers.ModelSerializer):
 
 # 임시 update
 class UpdateScrapSerializer(serializers.ModelSerializer):
+    tags = TagSerializer(many=True)
+
     class Meta:
         model = Scrap
         fields = ('scrap_id',
                   'folder',
                   'title',
+                  'tags',
                   )
+
+    def get_tags(self, instance):
+        tag = instance.tags.all()
+        return TagSerializer(tag, many=True).data
+
+    def update(self, instance, validated_data):
+        tag_dict_list = validated_data.pop('tags')
+        text_list = []
+        for i in range(0, len(tag_dict_list)):
+            text_list.append(tag_dict_list[i].get('tag_text'))
+
+        scrap_id = validated_data.get('scrap_id', instance.scrap_id)
+        instance.scrap_id = scrap_id
+        instance.folder = validated_data.get('folder', instance.folder)
+        instance.title = validated_data.get('title', instance.title)
+        instance.save()
+
+        # add tag
+        for i in range(0, len(tag_dict_list)):
+            tag_text = text_list[i]
+
+            if not Tag.objects.filter(scrap=scrap_id, tag_text=tag_text).exists():
+                tag_data = dict(scrap=scrap_id,
+                                tag_text=tag_text)
+                tag_serializer = CreateTagSerializer(data=tag_data)
+                tag_serializer.is_valid(raise_exception=True)
+                tag_serializer.save()
+
+        # delete tag
+        for i in Tag.objects.filter(scrap=scrap_id):
+            if i.tag_text not in text_list:
+                i.delete()
+
+        return instance
 
 
 class UrlRequestSerializer(serializers.Serializer):

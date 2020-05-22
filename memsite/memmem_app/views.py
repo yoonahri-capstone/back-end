@@ -77,7 +77,6 @@ class LoginAPI(generics.GenericAPIView):
         )
 
 
-
 '''
 class UserAPI(generics.RetrieveAPIView):
     permission_classes = [permissions.IsAuthenticated]
@@ -110,6 +109,7 @@ class FolderScrapsViewSet(viewsets.ModelViewSet):
     def get_queryset(self, *args, **kwargs):
         #return Folder.objects.filter(user_id=self.kwargs['pk'], folder_key=self.kwargs['folder_key'])
         return Folder.objects.filter(user_id=self.kwargs['pk'], folder_id=self.kwargs['folder_id'])
+
 
 '''
 # Get Scrap List (in Default Folder)
@@ -236,6 +236,24 @@ class CreateFolderAPI(generics.GenericAPIView):
         )
 
 
+class CreateMenuFolderAPI(generics.GenericAPIView):
+    serializer_class = CreateFolderSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = CreateFolderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        folder = serializer.save()
+
+        query = Folder.objects.filter(user=folder.user).order_by('folder_id')
+        output_serializer = FolderSerializer(query, many=True)
+        return JsonResponse(
+            {
+                'folder': output_serializer.data
+            },
+            status=200
+        )
+
+
 class FolderDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Folder.objects.all()
     serializer_class = UpdateFolderSerializer
@@ -267,6 +285,22 @@ class ScrapDetail(generics.RetrieveUpdateDestroyAPIView):
 class UpdateScrap(generics.RetrieveUpdateDestroyAPIView):
     queryset = Scrap.objects.all()
     serializer_class = UpdateScrapSerializer
+
+    def update(self, request, *args, **kwargs):
+        scrap = Scrap.objects.get(scrap_id=self.kwargs['pk'])
+
+        serializer = UpdateScrapSerializer(scrap, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        update = serializer.save()
+
+        return JsonResponse(
+            {
+                'scrap': ScrapSerializer(
+                    update, context=self.get_serializer_context()
+                ).data
+            },
+            status=200
+        )
 
 
 class TagDetail(generics.RetrieveUpdateDestroyAPIView):
