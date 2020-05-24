@@ -18,6 +18,7 @@ from .serializers import CreateFolderSerializer
 from .serializers import UpdateScrapSerializer
 from .serializers import FolderSerializer
 from .serializers import UpdateFolderSerializer
+from .serializers import FolderRequestSerializer
 
 # from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
@@ -218,19 +219,22 @@ class CreateScrapAPI(generics.GenericAPIView):
 
 
 class CreateFolderAPI(generics.GenericAPIView):
-    serializer_class = CreateFolderSerializer
+    serializer_class = FolderRequestSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = CreateFolderSerializer(data=request.data)
+        folder_data = dict(user=request.data['id'],
+                           folder_name=request.data['folder_name'])
+
+        serializer = CreateFolderSerializer(data=folder_data)
         serializer.is_valid(raise_exception=True)
         folder = serializer.save()
 
+        query = Folder.objects.filter(user=folder.user).order_by('folder_id')
+        output_serializer = FolderSerializer(query, many=True)
+
         return JsonResponse(
             {
-                'folder_id': FolderSerializer(folder, context=self.get_serializer_context()
-                                       ).data['folder_id'],
-                'folder_name': FolderSerializer(folder, context=self.get_serializer_context()
-                                       ).data['folder_name']
+                'folders': output_serializer.data
             },
             status=200
         )
