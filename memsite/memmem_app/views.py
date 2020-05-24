@@ -1,6 +1,6 @@
 from rest_framework import viewsets, permissions, generics, status
 from django.contrib.auth.models import User
-from .models import Profile, Folder, Scrap, Memo, Tag
+from .models import Profile, Folder, Scrap, Memo, Tag, Place, Food
 
 from .serializers import UserSerializer
 from .serializers import CreateUserSerializer
@@ -14,10 +14,13 @@ from .serializers import CreateScrapSerializer
 from .serializers import CreateTagSerializer
 from .serializers import MemoSerializer
 from .serializers import TagSerializer
+from .serializers import FolderRequestSerializer
 from .serializers import CreateFolderSerializer
 from .serializers import UpdateScrapSerializer
 from .serializers import FolderSerializer
 from .serializers import UpdateFolderSerializer
+from .serializers import IdListSerializer
+from .serializers import RecrawlingSerializer
 
 # from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
@@ -26,6 +29,7 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 from knox.models import AuthToken
 from .crawling import crawl_request
+#from .hashtag_classification import tag_classifier
 
 from django.http import JsonResponse
 
@@ -141,6 +145,32 @@ class ScrapViewSet(viewsets.ModelViewSet):
         return Scrap.objects.filter(scrap_id=self.kwargs['pk'])
 '''
 
+'''
+def classify_tag(tag):
+    tag_text = getattr(tag, 'tag_text')
+    tag_text = tag_text.replace('#', '')
+
+    classifier = tag_classifier(tag_text)
+    print(classifier)
+    if classifier is None:
+        pass
+    elif len(classifier) == 2:
+        if classifier[1] is None:
+            pass
+        else:
+            name = classifier[0]
+            latitude = classifier[1][0]
+            longitude = classifier[1][1]
+            Place.objects.create(name=name,
+                                 latitude=latitude,
+                                 longitude=longitude,
+                                 tag=tag)
+    elif len(classifier) == 1:
+        Food.objects.create(tag=tag)
+    else:
+        print('err')
+'''
+
 regex = r"(?i)\b((?:https?://|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'\".,<>?«»“”‘’]))"
 
 
@@ -150,12 +180,17 @@ class CreateScrapAPI(generics.GenericAPIView):
     serializer_class = UrlRequestSerializer
 
     def post(self, request, *args, **kwargs):
-        # print(request.body)
+        '''
         request = json.loads(request.body)
         user = request['id']
         #folder_key = request['folder_key']
         folder_id = request['folder_id']
         check = request['url']
+        '''
+
+        user = request.data['id']
+        folder_id = request.data['folder_id']
+        check = request.data['url']
 
         url = re.findall(regex, check)[0][0]
 
@@ -204,7 +239,7 @@ class CreateScrapAPI(generics.GenericAPIView):
                                         tag_text=tags_list[i])
                         tag_serializer = CreateTagSerializer(data=tag_data)
                         tag_serializer.is_valid(raise_exception=True)
-                        tag_serializer.save()
+                        tag = tag_serializer.save()
 
                 return Response(
                     {
@@ -218,59 +253,53 @@ class CreateScrapAPI(generics.GenericAPIView):
 
 
 class CreateFolderAPI(generics.GenericAPIView):
-    serializer_class = CreateFolderSerializer
+    serializer_class = FolderRequestSerializer
 
     def post(self, request, *args, **kwargs):
-        serializer = CreateFolderSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        folder = serializer.save()
+        if not Folder.objects.filter(user=request.data['id'],
+                                     folder_name=request.data['folder_name']).exists():
+            folder_data = dict(user=request.data['id'],
+                               folder_name=request.data['folder_name'])
 
-        return JsonResponse(
-            {
-                'folder_id': FolderSerializer(folder, context=self.get_serializer_context()
-                                       ).data['folder_id'],
-                'folder_name': FolderSerializer(folder, context=self.get_serializer_context()
-                                       ).data['folder_name']
-            },
-            status=200
-        )
+            serializer = CreateFolderSerializer(data=folder_data)
+            serializer.is_valid(raise_exception=True)
+            folder = serializer.save()
 
+            query = Folder.objects.filter(user=folder.user).order_by('folder_id')
+            output_serializer = FolderSerializer(query, many=True)
 
-class CreateMenuFolderAPI(generics.GenericAPIView):
-    serializer_class = CreateFolderSerializer
-
-    def post(self, request, *args, **kwargs):
-        serializer = CreateFolderSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        folder = serializer.save()
-
-        query = Folder.objects.filter(user=folder.user).order_by('folder_id')
-        output_serializer = FolderSerializer(query, many=True)
-        return JsonResponse(
-            {
-                'folder': output_serializer.data
-            },
-            status=200
-        )
+            return JsonResponse(
+                {
+                    'folders': output_serializer.data
+                },
+                status=200
+            )
+        else:
+            return JsonResponse({'message': 'FOLDER NAME EXISTS'}, status=403)
 
 
 class FolderDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Folder.objects.all()
     serializer_class = UpdateFolderSerializer
 
-    def update(self, request, *args, **kwargs):
+    def delete(self, request, *args, **kwargs):
         obj = Folder.objects.get(folder_id=self.kwargs['pk'])
 
-        serializer = UpdateFolderSerializer(obj, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        folder = serializer.save()
+        scraps = Scrap.objects.filter(folder=obj.folder_id)
+        new_folder = Folder.objects.get(user=self.kwargs['user'], folder_key=0)
+
+        for scrap in scraps:
+            scrap.folder = new_folder
+            scrap.save()
+
+        obj.delete()
+
+        query = Folder.objects.filter(user=self.kwargs['user']).order_by('folder_id')
+        output_serializer = FolderSerializer(query, many=True)
 
         return JsonResponse(
             {
-                'folder_id': FolderSerializer(folder, context=self.get_serializer_context()
-                                              ).data['folder_id'],
-                'folder_name': FolderSerializer(folder, context=self.get_serializer_context()
-                                                ).data['folder_name']
+                'folders': output_serializer.data
             },
             status=200
         )
@@ -281,7 +310,6 @@ class ScrapDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = ScrapSerializer
 
 
-#임시 update
 class UpdateScrap(generics.RetrieveUpdateDestroyAPIView):
     queryset = Scrap.objects.all()
     serializer_class = UpdateScrapSerializer
@@ -298,6 +326,53 @@ class UpdateScrap(generics.RetrieveUpdateDestroyAPIView):
                 'scrap': ScrapSerializer(
                     update, context=self.get_serializer_context()
                 ).data
+            },
+            status=200
+        )
+
+
+class ReCrawling(generics.GenericAPIView):
+    queryset = Scrap.objects.all()
+    serializer_class = IdListSerializer
+
+    def put(self, request):
+        for element in request.data['id_list']:
+            scrap = Scrap.objects.get(scrap_id=element['scrap_id'])
+
+            response = requests.get(scrap.url)
+
+            if response.status_code == 200:
+                crawling = crawl_request(scrap.url)
+                crawl_list = crawling[0:4]
+
+                crawl_data = dict(scrap_id=scrap.scrap_id,
+                                  url=crawl_list[0],
+                                  thumbnail=crawl_list[2],
+                                  domain=crawl_list[3])
+
+                serializer = RecrawlingSerializer(scrap, data=crawl_data, partial=True)
+                serializer.is_valid(raise_exception=True)
+                update = serializer.save()
+
+            else:
+                scrap.delete()
+
+        # ??
+        return JsonResponse({'status': 200})
+
+
+class CreateTagAPI(generics.GenericAPIView):
+    serializer_class = CreateTagSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = CreateTagSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        tag = serializer.save()
+
+        return JsonResponse(
+            {
+                'tag': TagSerializer(tag, context=self.get_serializer_context()
+                                     ).data
             },
             status=200
         )

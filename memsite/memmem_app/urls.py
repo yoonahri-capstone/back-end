@@ -8,7 +8,6 @@ from .views import FolderScrapsViewSet
 #from .views import DefaultFolderScrapsViewSet
 
 from .views import CreateFolderAPI
-from .views import CreateMenuFolderAPI
 from .views import FolderDetail
 
 from .views import ScrapAllViewSet
@@ -16,7 +15,9 @@ from .views import ScrapAllViewSet
 from .views import CreateScrapAPI
 from .views import ScrapDetail
 from .views import UpdateScrap
+from .views import ReCrawling
 
+from .views import CreateTagAPI
 from .views import TagDetail
 
 app_name = 'memmem_app'
@@ -45,11 +46,12 @@ urlpatterns = [
     path('users/<int:pk>/folders/<int:folder_id>/listall/', folder_scraps, name="folder_scraps"),
     path('users/<int:pk>/listall/', user_scraps, name="user_scraps"),
 
-    path('addmenufolder/', CreateMenuFolderAPI.as_view()),
     path('addfolder/', CreateFolderAPI.as_view()),
     path('addscrap/', CreateScrapAPI.as_view()),
+    path('addtag/', CreateTagAPI.as_view()),
     path('scrap/<int:pk>/', ScrapDetail.as_view()),
-    path('updatescrap/<int:pk>/', UpdateScrap.as_view()), #임시 update
+    path('updatescrap/<int:pk>/', UpdateScrap.as_view()),
+    path('recrawling/', ReCrawling.as_view()),
     path('tag/<int:pk>/', TagDetail.as_view()),
 
     path('', include('rest_framework.urls', namespace='rest_framework_category')),
