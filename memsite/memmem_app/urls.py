@@ -20,6 +20,9 @@ from .views import ReCrawling
 from .views import CreateTagAPI
 from .views import TagDetail
 
+from .views import UserLocationAPI
+from .views import UserFoodAPI
+
 app_name = 'memmem_app'
 
 # 막판에 깔끔하게 정리
@@ -53,6 +56,9 @@ urlpatterns = [
     path('updatescrap/<int:pk>/', UpdateScrap.as_view()),
     path('recrawling/', ReCrawling.as_view()),
     path('tag/<int:pk>/', TagDetail.as_view()),
+
+    path('location/user/<int:pk>/', UserLocationAPI.as_view()),
+    path('food/user/<int:pk>/', UserFoodAPI.as_view()),
 
     path('', include('rest_framework.urls', namespace='rest_framework_category')),
  ]

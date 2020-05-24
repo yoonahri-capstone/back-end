@@ -63,20 +63,6 @@ def get_distance(lat1, lng1, lat2, lng2):    #km 단위
     distance = R*c
     return distance
 
-'''
-def classify_tag(tag, input):
-    if "LC" in tag or "OG" in tag:
-        place_list.append(input)
-        place_list.append(get_geocode(input))
-        #return place_list
-
-    elif tag == "CV_FOOD":
-        food_list.append(input)
-        #return food_list
-
-    # elif
-'''
-
 
 def tag_classifier(input):
     place_list = []
@@ -84,16 +70,13 @@ def tag_classifier(input):
     tag = get_tag(requestJson(input))
 
     if "LC" in tag or "OG" in tag:
-        print('1')
         place_list.append(input)
         place_list.append(get_geocode(input))
         return place_list
 
     elif "CV_FOOD" in tag:
-        print('2')
         food_list.append(input)
         return food_list
 
     else:
-        print('3')
         return None

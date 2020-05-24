@@ -97,7 +97,7 @@ class ScrapListSerializer(serializers.ModelSerializer):
         fields = ('folder_id', 'folder_name', 'scraps')
 
     def get_scraps(self, instance):
-        scrap = instance.scraps.all()
+        scrap = instance.scraps.all().order_by('-scrap_id')
         return ScrapSerializer(scrap, many=True).data
 
 '''
@@ -273,3 +273,8 @@ class RecrawlingSerializer(serializers.ModelSerializer):
                   'thumbnail',
                   'domain'
                   )
+
+
+class UserLocationSerializer(serializers.Serializer):
+    latitude = serializers.FloatField()
+    longitude = serializers.FloatField()

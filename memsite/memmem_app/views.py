@@ -1,4 +1,5 @@
 from rest_framework import viewsets, permissions, generics, status
+from rest_framework.views import APIView
 from django.contrib.auth.models import User
 from .models import Profile, Folder, Scrap, Memo, Tag, Place, Food
 
@@ -21,6 +22,7 @@ from .serializers import FolderSerializer
 from .serializers import UpdateFolderSerializer
 from .serializers import IdListSerializer
 from .serializers import RecrawlingSerializer
+from .serializers import UserLocationSerializer
 
 # from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
@@ -29,13 +31,15 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 from knox.models import AuthToken
 from .crawling import crawl_request
-#from .hashtag_classification import tag_classifier
+from .hashtag_classification import get_distance
+from django.core.exceptions import ObjectDoesNotExist
 
 from django.http import JsonResponse
 
 import requests
 import re
 import json
+import random
 
 
 # register user
@@ -113,7 +117,6 @@ class FolderScrapsViewSet(viewsets.ModelViewSet):
     def get_queryset(self, *args, **kwargs):
         #return Folder.objects.filter(user_id=self.kwargs['pk'], folder_key=self.kwargs['folder_key'])
         return Folder.objects.filter(user_id=self.kwargs['pk'], folder_id=self.kwargs['folder_id'])
-
 
 '''
 # Get Scrap List (in Default Folder)
@@ -315,20 +318,22 @@ class UpdateScrap(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UpdateScrapSerializer
 
     def update(self, request, *args, **kwargs):
-        scrap = Scrap.objects.get(scrap_id=self.kwargs['pk'])
+        try:
+            scrap = Scrap.objects.get(scrap_id=self.kwargs['pk'])
+            serializer = UpdateScrapSerializer(scrap, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            update = serializer.save()
 
-        serializer = UpdateScrapSerializer(scrap, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        update = serializer.save()
-
-        return JsonResponse(
-            {
-                'scrap': ScrapSerializer(
-                    update, context=self.get_serializer_context()
-                ).data
-            },
-            status=200
-        )
+            return JsonResponse(
+                {
+                    'scrap': ScrapSerializer(
+                        update, context=self.get_serializer_context()
+                    ).data
+                },
+                status=200
+            )
+        except ObjectDoesNotExist:
+            return JsonResponse({})
 
 
 class ReCrawling(generics.GenericAPIView):
@@ -357,7 +362,6 @@ class ReCrawling(generics.GenericAPIView):
             else:
                 scrap.delete()
 
-        # ??
         return JsonResponse({'status': 200})
 
 
@@ -381,3 +385,85 @@ class CreateTagAPI(generics.GenericAPIView):
 class TagDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+
+
+class UserLocationAPI(generics.GenericAPIView):
+    queryset = Place.objects.all()
+    serializer_class = UserLocationSerializer
+
+    def post(self, request, *args, **kwargs):
+        places = Place.objects.filter(tag__scrap__folder__user=self.kwargs['pk'])
+
+        latitude = float(request.data['latitude'])
+        longitude = float(request.data['longitude'])
+
+        scrap_list = []
+
+        for place in places:
+            distance = get_distance(latitude, longitude, place.latitude, place.longitude)
+            if distance <= 1.0:
+                scrap = Scrap.objects.get(scrap_id=place.tag.scrap.scrap_id)
+                scrap_list.append(scrap)
+
+        scrap_list = list(set(scrap_list))
+
+        if len(scrap_list) == 0:
+            return JsonResponse({})
+
+        elif len(scrap_list) == 1:
+            return JsonResponse(
+                {
+                    'scrap': ScrapSerializer(
+                        scrap_list[0], context=self.get_serializer_context()
+                    ).data
+                },
+                status=200
+            )
+
+        else:
+            i = random.randint(0, len(scrap_list)-1)
+            return JsonResponse(
+                {
+                    'scrap': ScrapSerializer(
+                        scrap_list[i], context=self.get_serializer_context()
+                    ).data
+                },
+                status=200
+            )
+
+
+class UserFoodAPI(APIView):
+    def get(self, request, *args, **kwargs):
+        foods = Food.objects.filter(tag__scrap__folder__user=self.kwargs['pk'])
+
+        scrap_list = []
+
+        for food in foods:
+            scrap = Scrap.objects.get(scrap_id=food.tag.scrap.scrap_id)
+            scrap_list.append(scrap)
+
+        scrap_list = list(set(scrap_list))
+
+        if len(scrap_list) == 0:
+            return JsonResponse({})
+
+        elif len(scrap_list) == 1:
+            return JsonResponse(
+                {
+                    'scrap': ScrapSerializer(
+                        scrap_list[0]
+                    ).data
+                },
+                status=200
+            )
+
+        else:
+            i = random.randint(0, len(scrap_list)-1)
+            return JsonResponse(
+                {
+                    'scrap': ScrapSerializer(
+                        scrap_list[i]
+                    ).data
+                },
+                status=200
+            )
