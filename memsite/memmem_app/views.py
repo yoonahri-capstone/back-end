@@ -80,8 +80,8 @@ class LoginAPI(generics.GenericAPIView):
         return JsonResponse(
             {
                 'status': 200,
-                'id': UserSerializer(user, context=self.get_serializer_context()
-                                     ).data['id']
+                'id': UserSerializer(user, context=self.get_serializer_context()).data['id'],
+                'email' : UserSerializer(user, context=self.get_serializer_context()).data['email']
             }
         )
 
