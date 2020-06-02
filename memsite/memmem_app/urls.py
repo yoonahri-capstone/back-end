@@ -29,6 +29,7 @@ from .views import UserFoodAPI
 from .views import SearchUserAPI
 from .views import CreateSharingAPI
 from .views import SharingListViewSet
+from .views import SharingViewSet
 
 app_name = 'memmem_app'
 
@@ -42,6 +43,7 @@ folder_scraps = FolderScrapsViewSet.as_view({"get":"list"})
 #default_folder_scraps = DefaultFolderScrapsViewSet.as_view({"get": "list"})
 user_scraps = ScrapAllViewSet.as_view({"get":"list"})
 #scrap_detail = ScrapViewSet.as_view({"get": "retrieve", "patch": "partial_update"}) # 수정 필요
+sharings = SharingViewSet.as_view({"get":"list"})
 sharing_list = SharingListViewSet.as_view({"get":"list"})
 
 urlpatterns = [
@@ -55,6 +57,7 @@ urlpatterns = [
     #path('users/<int:pk>/folders/<int:folder_key>/', folder_scraps, name="folder_scraps"),
     path('users/<int:user>/folders/<int:pk>/', FolderDetail.as_view()),
     path('users/<int:pk>/folders/<int:folder_id>/listall/', folder_scraps, name="folder_scraps"),
+    path('users/<int:pk>/sharings/', sharings),
     path('users/<int:pk>/listall/', user_scraps, name="user_scraps"),
     path('users/<int:pk>/checkall/', CheckScrapAPI.as_view()),
 
@@ -73,7 +76,7 @@ urlpatterns = [
 
     path('search/', SearchUserAPI.as_view()),
     path('addsharing/', CreateSharingAPI.as_view()),
-    path('users/<int:pk>/sharing/', sharing_list),
+    path('users/<int:pk>/sharinglist/', sharing_list),
 
     path('', include('rest_framework.urls', namespace='rest_framework_category')),
  ]
