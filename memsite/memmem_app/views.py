@@ -474,6 +474,25 @@ class FindFoodAPI(generics.GenericAPIView):
             return JsonResponse({'status': 204})
 
 
+# search data
+class FindLocationAPI(generics.GenericAPIView):
+    queryset = Place.objects.all()
+    serializer_class = UserLocationSerializer
+
+    def post(self, request, *args, **kwargs):
+        places = Place.objects.filter(tag__scrap__folder__user=self.kwargs['pk'])
+
+        latitude = float(request.data['latitude'])
+        longitude = float(request.data['longitude'])
+
+        for place in places:
+            distance = get_distance(latitude, longitude, place.latitude, place.longitude)
+            if distance <= 1.0:
+                return JsonResponse({'status': 200})
+        # no data
+        return JsonResponse({'status': 204})
+
+
 class UserFoodAPI(APIView):
     def get(self, request, *args, **kwargs):
         foods = Food.objects.filter(tag__scrap__folder__user=self.kwargs['pk'])
@@ -535,3 +554,4 @@ class SharingListViewSet(viewsets.ModelViewSet):
         for i in range(len(query)):
             q |= User.objects.filter(id=query[i])
         return q
+

@@ -21,14 +21,11 @@ from .views import ReCrawling
 from .views import CreateTagAPI
 from .views import TagDetail
 
-from .views import FindLocationAPI
 from .views import UserLocationAPI
-from .views import FindFoodAPI
 from .views import UserFoodAPI
 
-from .views import SearchUserAPI
-from .views import CreateSharingAPI
-from .views import SharingListViewSet
+from .views import FindLocationAPI
+from .views import FindFoodAPI
 
 app_name = 'memmem_app'
 
@@ -42,7 +39,6 @@ folder_scraps = FolderScrapsViewSet.as_view({"get":"list"})
 #default_folder_scraps = DefaultFolderScrapsViewSet.as_view({"get": "list"})
 user_scraps = ScrapAllViewSet.as_view({"get":"list"})
 #scrap_detail = ScrapViewSet.as_view({"get": "retrieve", "patch": "partial_update"}) # 수정 필요
-sharing_list = SharingListViewSet.as_view({"get":"list"})
 
 urlpatterns = [
     path('auth/register/', RegistrationAPI.as_view()),
@@ -66,14 +62,11 @@ urlpatterns = [
     path('recrawling/', ReCrawling.as_view()),
     path('tag/<int:pk>/', TagDetail.as_view()),
 
-    path('findlocation/user/<int:pk>/', FindLocationAPI.as_view()),
-    path('findfood/user/<int:pk>/', FindFoodAPI.as_view()),
     path('location/user/<int:pk>/', UserLocationAPI.as_view()),
     path('food/user/<int:pk>/', UserFoodAPI.as_view()),
 
-    path('search/', SearchUserAPI.as_view()),
-    path('addsharing/', CreateSharingAPI.as_view()),
-    path('users/<int:pk>/sharing/', sharing_list),
+    path('findlocation/user/<int:pk>/', FindLocationAPI.as_view()),
+    path('findfood/user/<int:pk>/', FindFoodAPI.as_view()),
 
     path('', include('rest_framework.urls', namespace='rest_framework_category')),
  ]
