@@ -45,7 +45,6 @@ from django.http import JsonResponse
 import requests
 import re
 import json
-import random
 
 
 # register user
@@ -104,6 +103,7 @@ class UserAPI(generics.RetrieveAPIView):
 class MyUserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
 
 
 # Get User's Folder List
@@ -271,6 +271,7 @@ class CreateScrapAPI(generics.GenericAPIView):
                     'scrap': {}
                 }
             )
+
 
 class CreateFolderAPI(generics.GenericAPIView):
     serializer_class = FolderRequestSerializer
@@ -541,6 +542,19 @@ class CreateSharingAPI(generics.GenericAPIView):
         Folder.objects.get_or_create(user=sharing, folder_key=0)
 
         return JsonResponse({'status': 200})
+
+
+class SharingViewSet(viewsets.ModelViewSet):
+    queryset = User.objects.all()
+    serializer_class = SharingSerializer
+
+    def get_queryset(self, *args, **kwargs):
+        user = User.objects.get(id=self.kwargs['pk'])
+        query = Group.objects.filter(member=user).values_list('sharing', flat=True)
+        q = User.objects.filter(id=self.kwargs['pk'])
+        for i in range(len(query)):
+            q |= User.objects.filter(id=query[i])
+        return q
 
 
 class SharingListViewSet(viewsets.ModelViewSet):
