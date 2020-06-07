@@ -451,7 +451,7 @@ class UserLocationAPI(generics.GenericAPIView):
 
         for place in places:
             distance = get_distance(latitude, longitude, place.latitude, place.longitude)
-            if distance <= 1.0:
+            if distance <= 1.5:
                 scrap = Scrap.objects.get(scrap_id=place.tag.scrap.scrap_id)
                 scrap_list.append(scrap)
 
@@ -488,7 +488,7 @@ class FindLocationAPI(generics.GenericAPIView):
 
         for place in places:
             distance = get_distance(latitude, longitude, place.latitude, place.longitude)
-            if distance <= 1.0:
+            if distance <= 1.5:
                 return JsonResponse({'status': 200})
         # no data
         return JsonResponse({'status': 204})
