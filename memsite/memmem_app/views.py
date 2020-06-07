@@ -1,10 +1,11 @@
 from rest_framework import viewsets, permissions, generics, status
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
-from .models import Profile, Folder, Scrap, Memo, Tag, Place, Food, Group
+from .models import Client, Profile, Folder, Scrap, Memo, Tag, Place, Food, Group
 
 from .serializers import UserSerializer
 from .serializers import CreateUserSerializer
+from .serializers import LoginDataSerializer
 from .serializers import LoginUserSerializer
 from .serializers import UserFolderSerializer
 from .serializers import ScrapSerializer
@@ -26,6 +27,7 @@ from .serializers import RecrawlingSerializer
 from .serializers import UserLocationSerializer
 from .serializers import UsernameSerializer
 from .serializers import CreateSharingSerializer
+from .serializers import JoinSharingSerializer
 from .serializers import SharingSerializer
 from .serializers import AlarmPlaceSerializer
 from .serializers import AlarmFoodSerializer
@@ -38,6 +40,8 @@ from rest_framework.decorators import api_view
 from knox.models import AuthToken
 from .crawling import crawl_request
 from .hashtag_classification import get_distance
+from .notification import invitation_fcm
+from .notification import scrap_fcm
 from django.core.exceptions import ObjectDoesNotExist
 
 from django.http import JsonResponse
@@ -59,18 +63,25 @@ class RegistrationAPI(generics.GenericAPIView):
 
         Profile.objects.get_or_create(user=user)
         Folder.objects.get_or_create(user=user, folder_key=0)
+        Client.objects.get_or_create(user=user)
 
         return JsonResponse({'status': 200})
 
 
 # login
 class LoginAPI(generics.GenericAPIView):
-    serializer_class = LoginUserSerializer
+    serializer_class = LoginDataSerializer
 
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+    def post(self , request, *args, **kwargs):
+        data = dict(username=request.data['username'],
+                    password=request.data['password'])
+        serializer = LoginUserSerializer(data=data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data
+
+        client = Client.objects.get_or_create(user=user)
+        client[0].reg_id = request.data['token']
+        client[0].save()
 
         # return Response(
         #     {
@@ -85,7 +96,7 @@ class LoginAPI(generics.GenericAPIView):
             {
                 'status': 200,
                 'id': UserSerializer(user, context=self.get_serializer_context()).data['id'],
-                'email' : UserSerializer(user, context=self.get_serializer_context()).data['email']
+                'email': UserSerializer(user, context=self.get_serializer_context()).data['email']
             }
         )
 
@@ -103,7 +114,6 @@ class UserAPI(generics.RetrieveAPIView):
 class MyUserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-
 
 
 # Get User's Folder List
@@ -181,15 +191,7 @@ class CreateScrapAPI(generics.GenericAPIView):
     serializer_class = UrlRequestSerializer
 
     def post(self, request, *args, **kwargs):
-        '''
-        request = json.loads(request.body)
-        user = request['id']
-        #folder_key = request['folder_key']
-        folder_id = request['folder_id']
-        check = request['url']
-        '''
-
-        user = request.data['id']
+        sender = request.data['id']
         folder_id = request.data['folder_id']
         check = request.data['url']
 
@@ -198,6 +200,7 @@ class CreateScrapAPI(generics.GenericAPIView):
         response = requests.get(url)
         # print(response)# (status_code)
 
+        user = Folder.objects.get(folder_id=folder_id).user
         if Scrap.objects.filter(folder__user=user, url=url).exists():
             return JsonResponse(
                 {
@@ -253,6 +256,17 @@ class CreateScrapAPI(generics.GenericAPIView):
                         tag_serializer = CreateTagSerializer(data=tag_data)
                         tag_serializer.is_valid(raise_exception=True)
                         tag = tag_serializer.save()
+
+                if Group.objects.filter(sharing=user).exists():
+                    ids = []
+                    query = Group.objects.filter(sharing=user)
+                    for i in range(len(query)):
+                        reg_id = Client.objects.get(user=query[i].member).reg_id
+                        ids.append(reg_id)
+
+                    reg_id = Client.objects.get(user=sender).reg_id
+                    ids.remove(reg_id)
+                    scrap_fcm(ids, user.username)
 
                 return JsonResponse(
                     {
@@ -417,6 +431,9 @@ class TagDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
 
+    def get_queryset(self, *args, **kwargs):
+        return Tag.objects.filter(tag_id=self.kwargs['pk'])
+
 
 # search data
 class FindLocationAPI(generics.GenericAPIView):
@@ -513,15 +530,33 @@ class CreateSharingAPI(generics.GenericAPIView):
                                            email=None,
                                            password=None)
         sharing.save()
-
-        user_list = request.data['users']
-        for i in range(0, len(user_list)):
-            user = User.objects.get(username=user_list[i].get('username'))
-            group = Group.objects.create(sharing=sharing, member=user)
-            group.save()
-
         Folder.objects.get_or_create(user=sharing, folder_key=0)
 
+        user_list = request.data['users']
+
+        user = User.objects.get(username=user_list[0].get('username'))
+        group = Group.objects.create(sharing=sharing, member=user)
+        group.save()
+
+        ids = []
+        for i in range(1, len(user_list)):
+            member = User.objects.get(username=user_list[i].get('username'))
+            reg_id = Client.objects.get(user=member).reg_id
+            ids.append(reg_id)
+
+        invitation_fcm(ids, request.data['sharing_name'])
+
+        return JsonResponse({'status': 200})
+
+
+class JoinSharingAPI(generics.GenericAPIView):
+    serializer_class = JoinSharingSerializer
+
+    def post(self, request, *args, **kwargs):
+        sharing = User.objects.get(username=request.data['sharing_name'])
+        member = User.objects.get(id=kwargs['pk'])
+        group = Group.objects.create(sharing=sharing, member=member)
+        group.save()
         return JsonResponse({'status': 200})
 
 
