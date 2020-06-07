@@ -29,6 +29,7 @@ from .views import FindFoodAPI
 
 from .views import SearchUserAPI
 from .views import CreateSharingAPI
+from .views import JoinSharingAPI
 from .views import SharingListViewSet
 from .views import SharingViewSet
 
@@ -79,6 +80,7 @@ urlpatterns = [
 
     path('search/', SearchUserAPI.as_view()),
     path('addsharing/', CreateSharingAPI.as_view()),
+    path('users/<int:pk>/joinsharing/', JoinSharingAPI.as_view()),
     path('users/<int:pk>/sharinglist/', sharing_list),
 
     path('', include('rest_framework.urls', namespace='rest_framework_category')),
