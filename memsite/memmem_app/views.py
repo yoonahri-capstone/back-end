@@ -578,6 +578,17 @@ class JoinSharingAPI(generics.GenericAPIView):
         group.save()
         return JsonResponse({'status': 200})
 
+    def delete(self, request, *args, **kwargs):
+        sharing = User.objects.get(username=request.data['sharing_name'])
+        member = User.objects.get(id=kwargs['pk'])
+        group = Group.objects.get(sharing=sharing, member=member)
+        group.delete()
+
+        if not Group.objects.filter(sharing=sharing).exists():
+            sharing.delete()
+
+        return JsonResponse({'status': 200})
+
 
 class SharingViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
