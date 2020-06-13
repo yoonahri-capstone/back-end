@@ -1,5 +1,4 @@
-from rest_framework import viewsets, permissions, generics, status
-from rest_framework.views import APIView
+from rest_framework import viewsets, generics
 from django.contrib.auth.models import User
 from .models import Client, Profile, Folder, Scrap, Memo, Tag, Place, Food, Group
 
@@ -32,23 +31,17 @@ from .serializers import SharingSerializer
 from .serializers import AlarmPlaceSerializer
 from .serializers import AlarmFoodSerializer
 
-# from rest_framework.decorators import action
-from django.shortcuts import get_object_or_404
-from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.decorators import api_view
-from knox.models import AuthToken
 from .crawling import crawl_request
 from .hashtag_classification import get_distance
 from .notification import invitation_fcm
 from .notification import scrap_fcm
+
 from django.core.exceptions import ObjectDoesNotExist
-
 from django.http import JsonResponse
-
 import requests
 import re
-import json
+import random
 
 
 # register user
@@ -433,6 +426,23 @@ class TagDetail(generics.RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self, *args, **kwargs):
         return Tag.objects.filter(tag_id=self.kwargs['pk'])
+
+
+class TagViewSet(viewsets.ModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+
+    def get_queryset(self, *args, **kwargs):
+        places = Place.objects.filter(tag__scrap__folder__user=self.kwargs['pk']).order_by('?')[:5]
+        tags = Tag.objects.none()
+        for place in places:
+            tags |= Tag.objects.filter(places=place)
+
+        foods = Food.objects.filter(tag__scrap__folder__user=self.kwargs['pk']).order_by('?')[:5]
+        for food in foods:
+            tags |= Tag.objects.filter(food=food)
+
+        return tags
 
 
 # search data
