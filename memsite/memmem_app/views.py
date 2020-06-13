@@ -266,7 +266,7 @@ class CreateScrapAPI(generics.GenericAPIView):
 
                     reg_id = Client.objects.get(user=sender).reg_id
                     ids.remove(reg_id)
-                    scrap_fcm(ids, user.username)
+                    scrap_fcm(ids, user.username, scrap.thumbnail)
 
                 return JsonResponse(
                     {
@@ -448,7 +448,7 @@ class FindLocationAPI(generics.GenericAPIView):
 
         for place in places:
             distance = get_distance(latitude, longitude, place.latitude, place.longitude)
-            if distance <= 1.0:
+            if distance <= 1.5:
                 return JsonResponse({'status': 200})
         # no data
         return JsonResponse({'status': 204})
