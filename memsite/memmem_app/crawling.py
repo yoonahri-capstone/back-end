@@ -11,7 +11,6 @@ import os
 
 global driver, URL, html, soup
 
-
 def url_crawl(soup):
     save_list = []
     CURRENT_URL = driver.current_url
@@ -23,27 +22,27 @@ def url_crawl(soup):
 
     if domain == 'instagram':
         
-        driver.get("https://www.instagram.com/accounts/login/?hl=en")
+        # driver.get("https://www.instagram.com/accounts/login/?hl=en")
 
-        id = ''
-        password = ''
+        # id = ''
+        # password = ''
         # id_input = driver.find_element_by_css_selector('#react-root > section > main > div > article > div > div:nth-child(1) > div > form > div:nth-child(2) > div > label > input')
         # id_input.send_keys(id)
         # password_input = driver.find_element_by_css_selector('#react-root > section > main > div > article > div > div:nth-child(1) > div > form > div:nth-child(3) > div > label > input')
         # password_input.send_keys(password)
         # password_input.submit()
 
-        driver.find_element_by_name("username").send_keys(id)
-        driver.find_element_by_name("password").send_keys(password)
-        driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/article/div/div[1]/div/form/div[4]/button').submit()
-        time.sleep(1)
-        element = driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/article/div/div[1]/div/form/div[4]/button')
-        driver.execute_script("arguments[0].click();", element)
+        # driver.find_element_by_name("username").send_keys(id)
+        # driver.find_element_by_name("password").send_keys(password)
+        # driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/article/div/div[1]/div/form/div[4]/button').submit()
+        # time.sleep(1)
+        # element = driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/article/div/div[1]/div/form/div[4]/button')
+        # driver.execute_script("arguments[0].click();", element)
 
-        driver.get(CURRENT_URL)
-        html = driver.page_source
+        # driver.get(CURRENT_URL)
+        # html = driver.page_source
 
-        soup = BeautifulSoup(html, 'lxml')
+        # soup = BeautifulSoup(html, 'lxml')
         try:
             if "비공개 계정입니다" in soup.find('h2', {"class": "rkEop"}):
                 # print("비공개 계정입니다")
@@ -109,11 +108,16 @@ def naver_hashtag():
 
 
 def facebook_hashtag():
-    all_hashtag = soup.find('div', "_1dwg _1w_m _q7o").find_all("span", {"class": "_58cm"})
-    facebook_hashtag = [soup.find('div', "_1dwg _1w_m _q7o").find_all("span", {"class": "_58cm"})[n].string for n in range(0, len(all_hashtag))]
-    hashtag =[]
-    for i in facebook_hashtag:
-        hashtag.append('#' + i)
+    hashtag = []
+    try:
+        all_hashtag = soup.find('div', "_1dwg _1w_m _q7o").find_all("span", {"class": "_58cm"})
+        facebook_hashtag = [soup.find('div', "_1dwg _1w_m _q7o").find_all("span", {"class": "_58cm"})[n].string for n in range(0, len(all_hashtag))]
+
+        for i in facebook_hashtag:
+            hashtag.append('#' + i)
+    except:
+        pass
+    
     driver.quit()
     return hashtag
 
@@ -165,8 +169,6 @@ def crawl_request(request):
     chrome_options.add_argument('headless')
     chrome_options.add_argument("lang=ko_KR")
     chrome_options.add_argument("disable-gpu")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-extensions")
     # chrome_options.add_argument("disable-infobars")
     # prefs = {'profile.default_content_setting_values': {'cookies': 2, 'images': 2, 'plugins': 2, 'popups': 2,
     #                                                     'geolocation': 2, 'notifications': 2,
@@ -178,34 +180,41 @@ def crawl_request(request):
     #                                                     'metro_switch_to_desktop': 2, 'protected_media_identifier': 2,
     #                                                     'app_banner': 2, 'site_engagement': 2, 'durable_storage': 2}}
     # chrome_options.add_experimental_option('prefs', prefs)
-    
+    # driver_path = os.path.abspath('memmem_app/chromedriver_windossw.exe')
+    # driver_path = '/home/ubuntu/chromedriver.exe'
+
+    # driver_path = driver_path.replace('\\', '/')
+    # driver = webdriver.Chrome(executable_path = driver_path, options=chrome_options)
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
-    # driver = webdriver.Chrome(options=chrome_options)
-    # driver.implicitly_wait(20)
-    driver_path = os.path.abspath('memmem_app/chromedriver_windossw.exe')
-
-    '''
-    # aws server
-    driver_path = '/home/ubuntu/chromedriver.exe'
-    driver_path = driver_path.replace('\\', '/')
-    '''
-
-    # local
-    driver_path = os.path.abspath('memmem_app/chromedriver.exe')
-
-    driver = webdriver.Chrome(executable_path = driver_path, options=chrome_options)
-
+    driver = webdriver.Chrome(options=chrome_options)
+    driver.implicitly_wait(20)
 
     # no error 가정
     URL = request
+
+    if "instagram" in URL:
+        driver.get("https://www.instagram.com/accounts/login/?hl=en")
+        id = ''
+        password = ''
+        id_input = driver.find_element_by_css_selector(
+            '#react-root > section > main > div > article > div > div:nth-child(1) > div > form > div:nth-child(2) > div > label > input')
+        id_input.send_keys(id)
+        password_input = driver.find_element_by_css_selector(
+            '#react-root > section > main > div > article > div > div:nth-child(1) > div > form > div:nth-child(3) > div > label > input')
+        password_input.send_keys(password)
+        password_input.submit()
+        time.sleep(2)
+
     driver.get(URL)
 
     try:
         html = driver.page_source
         soup = BeautifulSoup(html, 'lxml')
+
     except Exception as e:
         print(e)
-        return None
+    
+
 
     save_list = url_crawl(soup)
     hash_list = hashtag_crawl()
