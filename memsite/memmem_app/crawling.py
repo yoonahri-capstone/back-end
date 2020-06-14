@@ -11,6 +11,7 @@ import os
 
 global driver, URL, html, soup
 
+
 def url_crawl(soup):
     save_list = []
     CURRENT_URL = driver.current_url
@@ -182,16 +183,29 @@ def crawl_request(request):
     # driver = webdriver.Chrome(options=chrome_options)
     # driver.implicitly_wait(20)
     driver_path = os.path.abspath('memmem_app/chromedriver_windossw.exe')
-    driver_path = '/home/ubuntu/chromedriver.exe'
 
+    '''
+    # aws server
+    driver_path = '/home/ubuntu/chromedriver.exe'
     driver_path = driver_path.replace('\\', '/')
+    '''
+
+    # local
+    driver_path = os.path.abspath('memmem_app/chromedriver.exe')
+
     driver = webdriver.Chrome(executable_path = driver_path, options=chrome_options)
+
 
     # no error 가정
     URL = request
     driver.get(URL)
-    html = driver.page_source
-    soup = BeautifulSoup(html, 'lxml')
+
+    try:
+        html = driver.page_source
+        soup = BeautifulSoup(html, 'lxml')
+    except Exception as e:
+        print(e)
+        return None
 
     save_list = url_crawl(soup)
     hash_list = hashtag_crawl()
