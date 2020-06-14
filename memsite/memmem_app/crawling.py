@@ -21,6 +21,28 @@ def url_crawl(soup):
     domain = extracted.domain
 
     if domain == 'instagram':
+        
+        driver.get("https://www.instagram.com/accounts/login/?hl=en")
+
+        id = ''
+        password = ''
+        # id_input = driver.find_element_by_css_selector('#react-root > section > main > div > article > div > div:nth-child(1) > div > form > div:nth-child(2) > div > label > input')
+        # id_input.send_keys(id)
+        # password_input = driver.find_element_by_css_selector('#react-root > section > main > div > article > div > div:nth-child(1) > div > form > div:nth-child(3) > div > label > input')
+        # password_input.send_keys(password)
+        # password_input.submit()
+
+        driver.find_element_by_name("username").send_keys(id)
+        driver.find_element_by_name("password").send_keys(password)
+        driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/article/div/div[1]/div/form/div[4]/button').submit()
+        time.sleep(1)
+        element = driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/article/div/div[1]/div/form/div[4]/button')
+        driver.execute_script("arguments[0].click();", element)
+
+        driver.get(CURRENT_URL)
+        html = driver.page_source
+
+        soup = BeautifulSoup(html, 'lxml')
         try:
             if "비공개 계정입니다" in soup.find('h2', {"class": "rkEop"}):
                 # print("비공개 계정입니다")
@@ -28,7 +50,7 @@ def url_crawl(soup):
         except:
             pass
 
-    if domain == 'naver' and extracted.suffix == 'me' and extracted_current_url.subdomain == 'blog':
+    if domain == 'naver' and extracted_current_url.subdomain == 'blog': #and extracted.suffix == 'me'
         driver.switch_to.frame('mainFrame')
         html = driver.page_source
         soup = BeautifulSoup(html, 'lxml')
@@ -40,10 +62,17 @@ def url_crawl(soup):
             title = soup.head.title.text
             title = title.replace('\n', ' ')
 
-        try:
-            thumbnail = soup.find("meta", {"property": "og:image"}).get("content")
-        except:
-            thumbnail = None
+        if domain == 'instagram':
+            try:
+                thumbnail = soup.select_one(".KL4Bh").img['src']
+            except:
+                thumbnail = soup.find("img", {"class": "_8jZFn"}).get("src")
+        else:
+            try:
+                thumbnail = soup.find("meta", {"property": "og:image"}).get("content")
+            except:
+                thumbnail = None
+
         save_list.append(URL)
         save_list.append(title)
         save_list.append(thumbnail)
@@ -57,16 +86,24 @@ def url_crawl(soup):
 
 
 def youtube_hashtag():
+    html = driver.page_source
+    soup = BeautifulSoup(html, 'lxml')
     all_hashtag = soup.find_all("a", {"class": "yt-simple-endpoint style-scope yt-formatted-string"})
     hashtag = [soup.find_all("a", {"class": "yt-simple-endpoint style-scope yt-formatted-string"})[n].string for n in range(0, len(all_hashtag))]
     # print(hashtag)
+    driver.quit()
     return hashtag
 
 
 def naver_hashtag():
+    html = driver.page_source
+    soup = BeautifulSoup(html, 'lxml')
     all_hashtag = soup.find_all("span", {"class": "ell"})
     hashtag = [soup.find_all("span", {"class": "ell"})[n].string for n in range(0, len(all_hashtag))]
     # print(hashtag)
+    if None in hashtag:
+        hashtag = []
+    driver.quit()
     return hashtag
 
 
@@ -76,6 +113,7 @@ def facebook_hashtag():
     hashtag =[]
     for i in facebook_hashtag:
         hashtag.append('#' + i)
+    driver.quit()
     return hashtag
 
 
@@ -124,23 +162,30 @@ def crawl_request(request):
 
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument('headless')
+    chrome_options.add_argument("lang=ko_KR")
     chrome_options.add_argument("disable-gpu")
-    chrome_options.add_argument("disable-infobars")
+    chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-extensions")
-    prefs = {'profile.default_content_setting_values': {'cookies': 2, 'images': 2, 'plugins': 2, 'popups': 2,
-                                                        'geolocation': 2, 'notifications': 2,
-                                                        'auto_select_certificate': 2, 'fullscreen': 2, 'mouselock': 2,
-                                                        'mixed_script': 2, 'media_stream': 2, 'media_stream_mic': 2,
-                                                        'media_stream_camera': 2, 'protocol_handlers': 2,
-                                                        'ppapi_broker': 2, 'automatic_downloads': 2, 'midi_sysex': 2,
-                                                        'push_messaging': 2, 'ssl_cert_decisions': 2,
-                                                        'metro_switch_to_desktop': 2, 'protected_media_identifier': 2,
-                                                        'app_banner': 2, 'site_engagement': 2, 'durable_storage': 2}}
-    chrome_options.add_experimental_option('prefs', prefs)
-    driver_path = os.path.abspath('memmem_app/chromedriver.exe')
+    # chrome_options.add_argument("disable-infobars")
+    # prefs = {'profile.default_content_setting_values': {'cookies': 2, 'images': 2, 'plugins': 2, 'popups': 2,
+    #                                                     'geolocation': 2, 'notifications': 2,
+    #                                                     'auto_select_certificate': 2, 'fullscreen': 2, 'mouselock': 2,
+    #                                                     'mixed_script': 2, 'media_stream': 2, 'media_stream_mic': 2,
+    #                                                     'media_stream_camera': 2, 'protocol_handlers': 2,
+    #                                                     'ppapi_broker': 2, 'automatic_downloads': 2, 'midi_sysex': 2,
+    #                                                     'push_messaging': 2, 'ssl_cert_decisions': 2,
+    #                                                     'metro_switch_to_desktop': 2, 'protected_media_identifier': 2,
+    #                                                     'app_banner': 2, 'site_engagement': 2, 'durable_storage': 2}}
+    # chrome_options.add_experimental_option('prefs', prefs)
+    
+    chrome_options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36")
+    # driver = webdriver.Chrome(options=chrome_options)
+    # driver.implicitly_wait(20)
+    driver_path = os.path.abspath('memmem_app/chromedriver_windossw.exe')
+    driver_path = '/home/ubuntu/chromedriver.exe'
+
     driver_path = driver_path.replace('\\', '/')
-    driver = webdriver.Chrome(driver_path, options=chrome_options)
-    driver.implicitly_wait(5)
+    driver = webdriver.Chrome(executable_path = driver_path, options=chrome_options)
 
     # no error 가정
     URL = request
