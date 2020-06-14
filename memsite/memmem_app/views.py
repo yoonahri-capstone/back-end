@@ -30,6 +30,7 @@ from .serializers import AlarmPlaceSerializer
 from .serializers import AlarmFoodSerializer
 
 from rest_framework.views import APIView
+from rest_framework.response import Response
 from .crawling import crawl_request
 from .hashtag_classification import get_distance
 from .notification import invitation_fcm
@@ -601,7 +602,13 @@ class JoinSharingAPI(generics.GenericAPIView):
         if not Group.objects.filter(sharing=sharing).exists():
             sharing.delete()
 
-        return JsonResponse({'status': 200})
+        query = Group.objects.filter(member=member).values_list('sharing', flat=True)
+        q = User.objects.none()
+        for i in range(len(query)):
+            q |= User.objects.filter(id=query[i])
+        output_serializer = SharingSerializer(q, many=True)
+
+        return Response(output_serializer.data, status=200)
 
 
 class SharingViewSet(viewsets.ModelViewSet):
